@@ -1,27 +1,34 @@
-import random
+from app import create_app
+from app.models import db, Employer, Employee
 from faker import Faker
-from .models import db
-from .models.employer import Employer
-from .models.employee import Employee
+import random
 
+app = create_app()
 fake = Faker()
 
-def seed_data(app):
-    with app.app_context():
-        db.drop_all()
-        db.create_all()
+with app.app_context():
+    print("Seeding database...")
 
-        employers = [Employer(name=fake.company()) for _ in range(10)]
-        db.session.add_all(employers)
-        db.session.commit()
+    # Clear old data
+    Employee.query.delete()
+    Employer.query.delete()
 
-        for _ in range(50):
-            employee = Employee(
-                name=fake.name(),
-                position=fake.job(),
-                employer_id=random.choice(employers).id
-            )
-            db.session.add(employee)
+    # Create 10 employers
+    employers = []
+    for _ in range(10):
+        employer = Employer(name=fake.company(), industry=fake.job())
+        employers.append(employer)
+        db.session.add(employer)
+    db.session.commit()
 
-        db.session.commit()
-        print("Seeded 10 employers and 50 employees.")
+    # Create 50 employees assigned to random employers
+    for _ in range(50):
+        employee = Employee(
+            name=fake.name(),
+            position=fake.job(),
+            employer_id=random.choice(employers).id
+        )
+        db.session.add(employee)
+    db.session.commit()
+
+    print("✅ Database seeded with 10 employers and 50 employees.")
